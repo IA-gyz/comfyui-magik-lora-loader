@@ -36,6 +36,14 @@ For `my_lora.safetensors`, supported sidecar examples include:
 
 The preview image should sit beside the LoRA file. For LoRAs in nested folders, keep the sidecar in the same folder.
 
+## Development
+
+Run the test suite (no ComfyUI installation needed; ComfyUI modules are stubbed):
+
+```bash
+python -m unittest discover -s tests -v
+```
+
 ## Notes / limitations
 
 - The node loads exactly one LoRA. Chain multiple nodes to apply multiple LoRAs.

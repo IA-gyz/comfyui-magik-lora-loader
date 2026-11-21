@@ -104,7 +104,6 @@ function makeBrowser(node) {
             return !q || `${x.name} ${x.folder} ${x.triggers}`.toLowerCase().includes(q);
         });
         $(".count").textContent = `${visible.length} LoRA${visible.length === 1 ? "" : "s"}`;
-        $(".grid")?.replaceChildren();
         const grid = $(".magik-lora-grid");
         grid.innerHTML = visible.map(x => {
             const thumb = x.preview ? `<img loading="lazy" src="${api.apiURL("/magik_lora_loader/preview?name=" + encodeURIComponent(x.name))}">` : "No preview";
