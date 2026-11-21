@@ -94,28 +94,60 @@ def _triggers_for(lora_path):
     return ""
 
 
+_item_cache = {}
+
+
+def _entry_signature(path):
+    p = Path(path)
+    candidates = [p]
+    candidates += [p.with_suffix(ext) for ext in PREVIEW_EXTENSIONS]
+    candidates += [Path(str(p) + ".preview" + ext) for ext in PREVIEW_EXTENSIONS]
+    candidates += [p.with_suffix(ext) for ext in TRIGGER_EXTENSIONS]
+    sig = []
+    for candidate in candidates:
+        try:
+            st = candidate.stat()
+            sig.append((str(candidate), st.st_mtime_ns, st.st_size))
+        except OSError:
+            pass
+    return tuple(sig)
+
+
 def _library_items():
     items = []
-    for name in _lora_names():
+    names = _lora_names()
+    for name in names:
         try:
             path = _full_lora_path(name)
             if not path or not os.path.isfile(path):
+                _item_cache.pop(name, None)
                 continue
             stat = os.stat(path)
+            sig = _entry_signature(path)
+            cached = _item_cache.get(name)
+            if cached is not None and cached[0] == sig:
+                items.append(cached[1])
+                continue
             rel_folder = str(Path(name).parent)
             if rel_folder == ".":
                 rel_folder = ""
             preview = _preview_for(path)
-            items.append({
+            item = {
                 "name": name,
                 "folder": rel_folder,
                 "size": stat.st_size,
                 "modified": int(stat.st_mtime),
                 "preview": bool(preview),
                 "triggers": _triggers_for(path),
-            })
+            }
+            _item_cache[name] = (sig, item)
+            items.append(item)
         except Exception:
             continue
+    name_set = set(names)
+    for key in list(_item_cache):
+        if key not in name_set:
+            _item_cache.pop(key, None)
     return items
 
 
@@ -162,7 +194,7 @@ class MagikLoraLoader:
     CATEGORY = "Magik/Loaders"
     DESCRIPTION = "A single-LoRA loader with bypass, library browser, preview, favorites and trigger-word helper."
 
-    def apply_lora(self, model, clip, lora_name, strength_model, strength_clip, bypass=False, trigger_words=""):
+    def apply_lora(self, model, lora_name, strength_model, strength_clip, bypass=False, trigger_words="", clip=None):
         if bypass or (float(strength_model) == 0 and float(strength_clip) == 0):
             return (model, clip)
         path = _full_lora_path(lora_name)
